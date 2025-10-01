@@ -1,7 +1,7 @@
 import { Component, computed, DestroyRef, inject, OnInit } from '@angular/core';
 import { input } from '@angular/core';
 import { UsersService } from '../users.service';
-import { ActivatedRoute, RouterOutlet, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterOutlet, RouterLink, ResolveFn, ActivatedRouteSnapshot, RouterStateSnapshot, Resolve } from '@angular/router';
 
 @Component({
   selector: 'app-user-tasks',
@@ -10,31 +10,40 @@ import { ActivatedRoute, RouterOutlet, RouterLink } from '@angular/router';
   styleUrl: './user-tasks.component.css',
   imports: [RouterOutlet, RouterLink],
 })
-export class UserTasksComponent implements OnInit {
+export class UserTasksComponent implements OnInit{
   userId = input.required<string>(); 
-  private usersService = inject(UsersService);
-  private activatedRoute = inject(ActivatedRoute);
-  userName = '';
-  private destroyRef = inject(DestroyRef);
-
+  userName = input.required<string>();
   message = input.required<string>();
+
+  private activatedRoute = inject(ActivatedRoute);
 
   //userName = computed(
   //  () => this.usersService.users.find((u) => u.id === this.userId())?.name
   //);
 
   ngOnInit(): void {
-    console.log('Input data: ' + this.message());
+      this.activatedRoute.data.subscribe({
+        next : data => {
+          console.log(data);
+          
+        }
+      })
+  }
+}
+   
     
-      console.log(this.activatedRoute.snapshot);
-      console.log(this.activatedRoute.snapshot.paramMap.get('userId'));
-      
-      const subscription = this.activatedRoute.paramMap.subscribe({
-        next: (paramMap) => {
-          this.userName = 
-            this.usersService.users.find((u) => u.id === paramMap.get('userId'))?.name ||  '';
-       },
-      });
+    export const resolveUserName: ResolveFn<string> = 
+      (activatedRoute: ActivatedRouteSnapshot,
+       routerState: RouterStateSnapshot)=>
+       {
+        const usersService = inject(UsersService);
+        const userName = usersService.users.find((u) => u.id === activatedRoute.paramMap.get('userId'))?.name ||  '';
+        return userName;
+    } 
 
-      this.destroyRef.onDestroy(() => subscription.unsubscribe());
-    }};     
+    export const resolveTitle : ResolveFn<string> = 
+    (activatedRoute: ActivatedRouteSnapshot,
+       routerState: RouterStateSnapshot)=>
+       { 
+        return resolveUserName(activatedRoute, routerState) + '\'s Tasks'  //Miro`s tasks
+       }
